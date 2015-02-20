@@ -1,0 +1,2 @@
+Google Search Trends API
+
