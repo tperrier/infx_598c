@@ -55,7 +55,7 @@ class QueryGroup(object):
 			for r in q.csv_rows(**kwargs):
 				yield r
 
-	def make_csv(self,filename,**kwargs):
+	def csv_all(self,filename,**kwargs):
 		print 'Making CSV File: %s'%filename
 		with open(filename,'w') as fp:
 			csvfp = csv.writer(fp)
@@ -64,9 +64,34 @@ class QueryGroup(object):
 			if kwargs.get('avg',False):
 				header.append('avg')
 			csvfp.writerow(header)
-
+			#write csv_rows
 			for r in self.csv_rows(**kwargs):
 				csvfp.writerow(r)
+
+	def csv_query(self,query,**kwargs):
+		try:
+			qindex = self.query.index(query)
+		except ValueError as e:
+			print 'Query: %s not found in %s'%(query,self.query)
+		#make file name and make header
+		filename = '%s.csv'%query
+		print 'Making CSV File: %s'%filename
+		header = ['country','year','zeros']+[str(i) for i in range(1,13)]
+		if kwargs.get('avg',False):
+			header.append('avg')
+		#write csv file
+		kwargs['query'] = False
+		kwargs['zeros'] = True
+		with open(filename,'w') as fp:
+			csvfp = csv.writer(fp)
+			csvfp.writerow(header)
+			#write csv rows
+			for r in self.csv_rows(**kwargs):
+				csvfp.writerow(r)
+
+
+
+
 
 	def make_json(self,filename):
 		print 'Making JSON File: %s'%filename
@@ -296,13 +321,23 @@ class Query(object):
 	def csv_rows(self,**kwargs):
 		start = kwargs.get('start',2004)
 		end = kwargs.get('end',2014)
-		front = [self.query,self.label]
+		if kwargs.get('query',True):
+			front = [self.query,self.label]
+		else:
+			front = [self.label]
 		for y in range(start,end+1):
 			i = (y - 2004)*12
-			end = []
+			#Get Mid
+			mid = ['%i'%y] #year
+			end = self.data[i:i+12]
+			if kwargs.get('zeros',False): #append count of zeros. Default: False
+				mid.append(len([d for d in end if d==0]))
+			#Get End
+			if kwargs.get('round',True):
+				end = utils.list_round(end)
 			if kwargs.get('avg',False):
 				end.append(utils.mean(self.data[i:i+12]))
-			yield front+['%i'%y]+utils.list_round(self.data[i:i+12])+end
+			yield front+mid+end
 
 	def toJSON(self):
 		return self.__dict__
