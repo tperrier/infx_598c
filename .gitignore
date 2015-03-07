@@ -52,3 +52,11 @@ docs/_build/
 
 # PyBuilder
 target/
+
+#Custom Ignore
+api/private.py
+api/*.txt
+api/*.csv
+api/*.pk
+api/*.json
+*.~lock.*
