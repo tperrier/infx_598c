@@ -86,7 +86,7 @@ class QueryGroup(object):
 			csvfp = csv.writer(fp)
 			csvfp.writerow(header)
 			#write csv rows
-			for r in self.csv_rows(**kwargs):
+			for r in self.queries[qindex].csv_rows(**kwargs):
 				csvfp.writerow(r)
 
 
@@ -320,7 +320,7 @@ class Query(object):
 
 	def csv_rows(self,**kwargs):
 		start = kwargs.get('start',2004)
-		end = kwargs.get('end',2014)
+		end = kwargs.get('end',2013)
 		if kwargs.get('query',True):
 			front = [self.query,self.label]
 		else:
