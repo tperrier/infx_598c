@@ -60,3 +60,4 @@ api/*.csv
 api/*.pk
 api/*.json
 *.~lock.*
+local*.py
