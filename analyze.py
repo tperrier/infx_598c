@@ -47,9 +47,8 @@ def split_by(df,key):
 		for s in range(4):
 			yield df.loc[quartiles==s]
 
-def runSplits(data):
+def runSplits(data,features='median+sd'):
 	split_labels = ['economic','internet','mobiles','urban','english']
-	features = 'm3+m6+m9+m12'
 	table = []
 	for label in split_labels:
 		row = [label]
@@ -61,7 +60,7 @@ def runSplits(data):
 		table.append(row)
 
 	for row in table:
-		print ','.join([str(r) for r in row])
+		print ', '.join(['%.4f'%r if type(r)==np.float64 else str(r) for r in row])
 
 
 def runModel(data,features,reg=0,verbose=0):
