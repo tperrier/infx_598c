@@ -39,34 +39,39 @@ def filter_zeros(df):
 	return df[zeros<=5]
 
 def split_by(df,key):
-	if key == 'economic':
-		for s in range(4):
-			yield df[df.economic==s]
-	else:
-		quartiles = pd.qcut(df[key],4,labels=False)
-		for s in range(4):
-			yield df.loc[quartiles==s]
+	quartiles = pd.qcut(df[key],4,labels=False)
+	for s in range(4):
+		yield df.loc[quartiles==s]
 
-def runSplits(data,features='median+sd'):
+def run_levels(data,features='median+sd'):
 	split_labels = ['economic','internet','mobiles','urban','english']
 	table = []
-	for label in split_labels:
+	df = pd.DataFrame(columns=['split','l0','l1','l2','l3','all'])
+	print features
+	for ix,label in enumerate(split_labels):
 		row = [label]
 		for split in split_by(data,label):
-			model = runModel(split,features,verbose=-1)
+			model = runModel(split,features,verbose=0)
 			row.append(model.rsquared)
 		model = runModel(data,features,verbose=-1)
 		row.append(model.rsquared)
+		df.loc[ix] = row
 		table.append(row)
+		
+	return df
 
-	for row in table:
-		print ', '.join(['%.4f'%r if type(r)==np.float64 else str(r) for r in row])
+def show_stats(df):
+	print df.loc[:,['country','year','ground','avg','median','sd','economic','mobiles','internet']]
 
 
-def runModel(data,features,reg=0,verbose=0):
-	print 'Making Model: %s Data Shape: %s'%(features,data.shape)
+def runModel(data,features,reg=0,verbose=0,**kwargs):
+	if verbose > -1:
+		print 'Making Model: %s Data Shape: %s'%(features,data.shape)
 	if reg:
-		model = ols("ground ~ "+features, data).fit_regularized(alpha=0.2,maxiter=1000,Lt_wt=1)
+		alpha = kwargs.get('alpha',0.2)
+		maxiter = kwargs.get('maxiter',1000)
+		wt = kwargs.get('wt',1000)
+		model = ols("ground ~ "+features, data).fit_regularized(alpha=alpha,maxiter=maxiter,L1_wt=wt)
 	else:
 		model = ols("ground ~ "+features, data).fit()
 	if verbose > 0:
