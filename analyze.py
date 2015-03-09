@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn import datasets, linear_model
+import matplotlib.pyplot as plt
+from statsmodels.formula.api import ols
 import collections,os
 from code import interact as CI
 
@@ -36,15 +38,42 @@ def filter_zeros(df):
 	zeros = df.loc[:,'zeros']
 	return df[zeros<=5]
 
-def runModel(features,data,reg=0,verbose=0):
+def split_by(df,key):
+	if key == 'economic':
+		for s in range(4):
+			yield df[df.economic==s]
+	else:
+		quartiles = pd.qcut(df[key],4,labels=False)
+		for s in range(4):
+			yield df.loc[quartiles==s]
+
+def runSplits(data):
+	split_labels = ['economic','internet','mobiles','urban','english']
+	features = 'm3+m6+m9+m12'
+	table = []
+	for label in split_labels:
+		row = [label]
+		for split in split_by(data,label):
+			model = runModel(split,features,verbose=-1)
+			row.append(model.rsquared)
+		model = runModel(data,features,verbose=-1)
+		row.append(model.rsquared)
+		table.append(row)
+
+	for row in table:
+		print ','.join([str(r) for r in row])
+
+
+def runModel(data,features,reg=0,verbose=0):
+	print 'Making Model: %s Data Shape: %s'%(features,data.shape)
 	if reg:
 		model = ols("ground ~ "+features, data).fit_regularized(alpha=0.2,maxiter=1000,Lt_wt=1)
 	else:
 		model = ols("ground ~ "+features, data).fit()
-	if verbose:
+	if verbose > 0:
 		print model.summary()
-	else:
-		print model.rsquared#+model.params+model.pvalues
+	elif verbose == 0:
+		print 'R2: %s Coef: %s'%(model.rsquared,model.params)
 	return model
 
 def getDataSplit(data,count):
@@ -63,21 +92,3 @@ def getDataSplit(data,count):
 			front.extend(e)
 		print front
 		yield data.iloc[front], data.iloc[buckets[i]]
-
-
-
-'''
-zeros = data[:,2]
-years = data[:,1]
-d_filter = np.logical_and(np.logical_and(zeros<=5,years>=2011),~np.isnan(ground[:,ground_index]))
-# d_filter = ~np.isnan(ground[:,ground_index])
-dx = data[d_filter,3:]
-dy = ground[d_filter,ground_index]
-code.interact(local=locals())
-
-lin = linear_model.LinearRegression()
-
-lin.fit(dx,dy)
-
-print lin.score(dx,dy)
-'''
