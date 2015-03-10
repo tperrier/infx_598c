@@ -7,6 +7,7 @@ import collections,os
 from code import interact as CI
 
 DATA_DIR = 'data'
+COLORS = ['red','grey','blue','green']
 #GROUND KEYS: year	hiv	tb	economic	internet	mobiles	urban	english
 
 def get_csv(key):
@@ -39,9 +40,56 @@ def filter_zeros(df):
 	return df[zeros<=5]
 
 def split_by(df,key):
-	quartiles = pd.qcut(df[key],4,labels=False)
+	quartiles = get_quartiles(df,key)
 	for s in range(4):
 		yield df.loc[quartiles==s]
+
+def get_quartiles(df,key,labels=False):
+	return pd.qcut(df[key],4,labels=labels)
+
+def get_colors(df,key):
+	return get_quartiles(df,key,labels=COLORS)
+
+def get_graphs(df,feature='range',key='economic'):
+	fig = plt.figure(figsize=(8,6))
+	grid_val = 220
+	q_i=1
+	for i,data in enumerate(split_by(df,key)):
+		ax = fig.add_subplot(grid_val+q_i)
+		get_graph(ax,q_i,data,feature,key,colors=COLORS[i])
+		q_i=q_i+1
+	plt.show()
+
+def get_graph_all(df,key='internet'):
+	features = ['range','sd','median','sum']
+	fig = plt.figure(figsize=(8,6))
+	grid_val = 220
+	q_i=1
+	colors=get_colors(df,key)
+	for f in features:
+		ax = fig.add_subplot(grid_val+q_i)
+		get_graph(ax,q_i,df,f,key,colors=colors)
+		q_i=q_i+1
+	plt.show()
+
+def get_graph(ax,level,df,feature='range',key='economic',colors='black'):
+	model = runModel(df,feature)
+	plt.scatter(df['ground'],df[feature],  color=colors,label='Ground Truth')
+	dX = pd.DataFrame({feature:np.arange(0,df['ground'].max()+5,0.25)})
+	plt.plot(dX, model.predict(dX), color='black',linewidth=3, label='Model')
+	ax.set_xlabel('ground truth (%s)'%key)
+	ax.set_ylabel(feature)
+	title='%s'%key
+	if level==1: 
+		title='Low '+title
+	elif level==2:
+		title='Low middle '+title
+	elif level==3:
+		title='High middle '+title
+	elif level==4:
+		title='High '+title
+	ax.set_title("%s (R Sq: %0.2f)"%(title,model.rsquared))
+
 
 def run_levels(data,features='median+sd'):
 	split_labels = ['economic','internet','mobiles','urban','english']
