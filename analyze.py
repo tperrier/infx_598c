@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn import datasets, linear_model
 import matplotlib.pyplot as plt
 from statsmodels.formula.api import ols
+import statsmodels.api as sm
 import collections,os
 from code import interact as CI
 
@@ -16,6 +17,7 @@ def get_csv(key):
 	return pd.read_csv(filename)
 #Get ground truth data
 GT = get_csv('ground')
+GT_LABELS = ['economic','internet','mobiles','urban','english','literacy','population']
 
 def get_data(key,**kwargs):
 	if key not in ['hiv','tb']:
@@ -23,32 +25,35 @@ def get_data(key,**kwargs):
 	#DATA KEYS: country	year	zeros	1	2	3	4	5	6	7	8	9	10	11	12
 	df = get_csv(key)
 	df['ground'] = GT[key]
-	df = pd.concat([df,GT.loc[:,['economic','internet','mobiles','urban','english']]],axis=1)
+	df = pd.concat([df,GT.loc[:,GT_LABELS]],axis=1)
 	df = df.dropna() #Drop all rows with a nan in it
 
 	#filter rows with more than 5 zeros
 	df = filter_years(df,year=kwargs.get('year',2011))
-	df = filter_zeros(df)
+	df = filter_zeros(df,count=kwargs.get('count',5))
 	return df
 
 def filter_years(df,year=2011):
 	years = df.loc[:,'year']
 	return df[years>=year]
 
-def filter_zeros(df):
+def filter_zeros(df,count=5):
 	zeros = df.loc[:,'zeros']
-	return df[zeros<=5]
+	return df[zeros<=count]
 
-def split_by(df,key):
-	quartiles = get_quartiles(df,key)
-	for s in range(4):
+def filter_country(df,country):
+	return df[df.country == country]
+
+def split_by(df,key,n=4):
+	quartiles = get_quartiles(df,key,n=n)
+	for s in range(n):
 		yield df.loc[quartiles==s]
 
-def get_quartiles(df,key,labels=False):
-	return pd.qcut(df[key],4,labels=labels)
+def get_quartiles(df,key,n=4,labels=False):
+	return pd.qcut(df[key],n,labels=labels)
 
-def get_colors(df,key):
-	return get_quartiles(df,key,labels=COLORS)
+def get_colors(df,key,n=4):
+	return get_quartiles(df,key,n,labels=COLORS)
 
 def get_graphs(df,feature='range',key='economic'):
 	fig = plt.figure(figsize=(8,6))
@@ -91,22 +96,23 @@ def get_graph(ax,level,df,feature='range',key='economic',colors='black'):
 	ax.set_title("%s (R Sq: %0.2f)"%(title,model.rsquared))
 
 
-def run_levels(data,features='median+sd'):
-	split_labels = ['economic','internet','mobiles','urban','english']
-	table = []
-	df = pd.DataFrame(columns=['split','l0','l1','l2','l3','all'])
-	print features
-	for ix,label in enumerate(split_labels):
-		row = [label]
-		for split in split_by(data,label):
+def run_levels(data,features='median+sd',n=4):
+	columns = ['q%i'%i for i in range(n)]+['all']
+	table = {c:[] for c in columns}
+	print 'Running Levels: %s'%features
+	for label in GT_LABELS:
+		for ix,split in enumerate(split_by(data,label,n)):
 			model = runModel(split,features,verbose=-1)
-			row.append(model.rsquared)
+			table[columns[ix]].append(model.rsquared)
 		model = runModel(data,features,verbose=-1)
-		row.append(model.rsquared)
-		df.loc[ix] = row
-		table.append(row)
+		table['all'].append(model.rsquared)
+	return pd.DataFrame(data=table,index=[l for l in GT_LABELS])
 
+def graph_levels(data,features='median+sd',n=4):
+	df = run_levels(data,features,n)
+	df.T.drop('all').plot()
 	return df
+
 
 def show_stats(df):
 	print df.loc[:,['country','year','ground','avg','median','sd','economic','mobiles','internet']]
