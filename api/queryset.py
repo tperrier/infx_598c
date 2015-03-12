@@ -207,12 +207,12 @@ class QuerySet(object):
 		compare = ','.join(self.cmpt)
 		if self.geo:
 			params['cmpt'] = 'geo'
-			params['q'] = self.query
+			params['q'] = self.query[0]
 			params['geo'] = compare
 		else:
 			params['cmpt'] = 'q'
 			params['q'] = compare
-			params['geo'] = self.query
+			params['geo'] = self.query[0]
 
 		#GET request
 		r = requests.get(utils.TRENDS_URL,params=params,headers=utils.HEADERS)
@@ -230,7 +230,7 @@ class QuerySet(object):
 				return 'NO_DATA'
 			except ValueError as e:
 				# print 'Find Error: ',e
-				code.interact(local=locals())
+				# code.interact(local=locals())
 				raise e
 		try:
 			data = json.loads(utils.sub_date(data[start:end+1]))
@@ -247,7 +247,7 @@ class QuerySet(object):
 		#Transpose data rows to columns
 		indexs = []
 		#Get valid columns and labels 
-		query = self.query[0] if self.geo else self.cmpt[0]
+		query = self.query[0]
 		for i,v in enumerate(data['columns']):
 			if 'id' in v and v['id'].startswith('q'):
 				indexs.append(i)
@@ -329,15 +329,21 @@ class Query(object):
 			i = (y - 2004)*12
 			#Get Mid
 			mid = ['%i'%y] #year
-			end = self.data[i:i+12]
+			end = self.values_by_year(y)
 			if kwargs.get('zeros',False): #append count of zeros. Default: False
 				mid.append(len([d for d in end if d==0]))
+			if kwargs.get('max',False): #append max. Default: False
+				mid.append(max(end))
 			#Get End
 			if kwargs.get('round',True):
 				end = utils.list_round(end)
 			if kwargs.get('avg',False):
-				end.append(utils.mean(self.data[i:i+12]))
+				end.append(utils.mean(end))
 			yield front+mid+end
+
+	def values_by_year(self,year):
+		i = (year - 2004)*12
+		return self.data[i:i+12]
 
 	def toJSON(self):
 		return self.__dict__
@@ -366,6 +372,64 @@ def get_all():
 	codes = utils.COUNTRY_CODES.keys()
 	return QueryGroup(query,codes,geo=True).get(timeout=20)
 
+def check_countries():
+	query = ['hiv','tuberculosis','english','music']
+	queries = []
+	for code,country in list(utils.COUNTRY_ALL.iteritems()):
+		print 'Running %s (%s)'%(code,country)
+		try:
+			queries.append(QuerySet(code,query + [country],geo=False).get())
+			time.sleep(10)
+		except Exception as e:
+			print e
+	return queries
+
+def make_countries_csv(queries):
+	#make file name and make header
+	filename = 'countries.csv'
+	print 'Making CSV File: %s'%filename
+	header = ['current','country','year','zeros','max']+[str(i) for i in range(1,13)]
+	
+	with open(filename,'w') as fp:
+		csvfp = csv.writer(fp)
+		csvfp.writerow(header)
+
+		for q in queries:
+			for r in q.csv_rows(max=True,zeros=True):
+				csvfp.writerow([1 if q.query in utils.COUNTRY_ALL.keys() else 0] + r)
+
+def make_countries_zeros_csv(queries):
+	years = range(2004,2014)
+	header = ['country','current','query','max','zeors']+['z%i'%i for i in years]
+	rows = [header]
+
+	for s in queries:
+		for q in s.rows:
+			current = 1 if s.query[0] in utils.COUNTRY_CODES else 0
+			country = utils.COUNTRY_ALL[s.query[0]]
+			zeros = len([d for d in q.data if d==0])
+			row = [country,current,q.label,max(q.data),zeros]
+			rows.append(row+[len([d for d in z if d==0]) for z in [q.values_by_year(y) for y in years]])
+
+	with open('country_zeros.csv','w') as fp:
+		csvfp = csv.writer(fp)
+		csvfp.writerows(rows)
+
+def make_countries_summary_csv(queries):
+	years = range(2004,2014)
+	header =['country','current','hiv','music','english','country']
+	rows = [header]
+
+	for s in queries:
+		current = 1 if s.query[0] in utils.COUNTRY_CODES else 0
+		country = utils.COUNTRY_ALL[s.query[0]]
+		row = [country,current] + [s.rows[i].max() for i in [0,2,3,4]]
+		rows.append(row)
+
+	with open('country_summary.csv','w') as fp:
+		csvfp = csv.writer(fp)
+		csvfp.writerows(rows)
+
 if __name__ == '__main__':
 
 
@@ -373,11 +437,19 @@ if __name__ == '__main__':
 	# codes = ['NG','FR','US','CA','ZA']
 	# query = QueryGroup(query,utils.COUNTRY_CODES.keys(),geo=True).get()
 	# query.make_json('tb.json')
-	query = QueryGroup.fromJSON(json.load(open('all.json')))
+	# query = QueryGroup.fromJSON(json.load(open('all.json')))
 	
 	# query = get_all()
 	# query.make_csv('terms.csv')
 	# query.make_json('terms.json')
 
+	# queries = check_countries()
+	# make_countries_csv(queries)
+	# json.dump([q.toJSON() for q in queries],open('countries.json','w'))
 
-	code.interact(local=locals())
+	queries = [QuerySet.fromJSON(j) for j in json.load(open('countries.json'))]
+	make_countries_summary_csv(queries)
+	make_countries_zeros_csv(queries)
+
+
+	# code.interact(local=locals())

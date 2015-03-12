@@ -99,13 +99,13 @@ def run_levels(data,features='median+sd'):
 	for ix,label in enumerate(split_labels):
 		row = [label]
 		for split in split_by(data,label):
-			model = runModel(split,features,verbose=0)
+			model = runModel(split,features,verbose=-1)
 			row.append(model.rsquared)
 		model = runModel(data,features,verbose=-1)
 		row.append(model.rsquared)
 		df.loc[ix] = row
 		table.append(row)
-		
+
 	return df
 
 def show_stats(df):
