@@ -108,7 +108,7 @@ def get_fitted_graph(df,features=['median','sd'],label='HIV'):
 	ax.set_ylabel("%s Ground"%label)
 	ax.set_xlabel("Internet Query Level")
 	ax.set_title("Linear Regression")
-	plt.show()
+	plt.draw()
 
 def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='median'):
 	model = sm.OLS(df['ground'], df[features])
@@ -120,7 +120,7 @@ def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='medi
 	ax.set_title('Residuals versus %s' % exog_feature, fontsize='large')
 	ax.set_xlabel(exog_feature)
 	ax.set_ylabel("resid")
-	plt.show()
+	plt.draw()
 
 def run_levels(data,features='median+sd',n=4):
 	columns = ['q%i'%i for i in range(n)]+['all']
