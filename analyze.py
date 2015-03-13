@@ -169,7 +169,10 @@ def runModel(data,features,reg=0,verbose=0,**kwargs):
 	if verbose > 0:
 		print model.summary()
 	elif verbose == 0:
-		print 'R2: %s Coef: %s'%(model.rsquared,model.params)
+		print 'R2: %.4f  Std(ys) %.2f Std(res) %.2f'%(model.rsquared,model.model.endog.std(),model.resid.std())
+		for name,param in model.params.iteritems():
+			pvalue = model.pvalues[name]
+			print '  -> %s  %0.4f (%.4f)'%(name,param,pvalue)
 	return model
 
 def getDataSplit(data,count):
