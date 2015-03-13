@@ -4,6 +4,7 @@ from sklearn import datasets, linear_model
 import matplotlib.pyplot as plt
 from statsmodels.formula.api import ols
 import statsmodels.api as sm
+import statsmodels.graphics.regressionplots
 import collections,os
 from code import interact as CI
 
@@ -95,6 +96,31 @@ def get_graph(ax,level,df,feature='range',key='economic',colors='black'):
 		title='High '+title
 	ax.set_title("%s (R Sq: %0.2f)"%(title,model.rsquared))
 
+def get_scatter_grid_plot(df,features=['internet', 'economic', 'mobiles', 'literacy', 'urban'],colorkey='internet'):
+	pd.tools.plotting.scatter_matrix(df[features],marker='o',color=get_colors(df,colorkey))
+	plt.draw()
+
+def get_fitted_graph(df,features=['median','sd'],label='HIV'):
+	model = sm.OLS(df['ground'], df[features])
+	results = model.fit()
+	fig, ax = plt.subplots()
+	fig = sm.graphics.plot_fit(results, 0, ax=ax)
+	ax.set_ylabel("%s Ground"%label)
+	ax.set_xlabel("Internet Query Level")
+	ax.set_title("Linear Regression")
+	plt.show()
+
+def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='median'):
+	model = sm.OLS(df['ground'], df[features])
+	results = model.fit()
+	fig, ax = plt.subplots()
+	x1 = results.model.exog[:]
+	ax.plot(x1, results.resid, 'o')
+	ax.axhline(y=0, color='black')
+	ax.set_title('Residuals versus %s' % exog_feature, fontsize='large')
+	ax.set_xlabel(exog_feature)
+	ax.set_ylabel("resid")
+	plt.show()
 
 def run_levels(data,features='median+sd',n=4):
 	columns = ['q%i'%i for i in range(n)]+['all']
