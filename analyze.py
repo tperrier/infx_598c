@@ -109,7 +109,10 @@ def get_graph(ax,level,df,feature='range',key='economic',colors='black'):
 	ax.set_title("%s (R Sq: %0.2f)"%(title,model.rsquared))
 
 def get_scatter_grid_plot(df,features=['internet', 'economic', 'mobiles', 'literacy', 'urban'],colorkey='internet'):
-	pd.tools.plotting.scatter_matrix(df[features],marker='o',color=get_colors(df,colorkey))
+	if colorkey=='':
+		pd.tools.plotting.scatter_matrix(df[features],marker='o',color='blue')
+	else:
+		pd.tools.plotting.scatter_matrix(df[features],marker='o',color=get_colors(df,colorkey))
 	plt.draw()
 
 def get_fitted_graph(df,features=['median','sd'],label='HIV'):
