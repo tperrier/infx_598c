@@ -10,13 +10,14 @@ from code import interact as CI
 
 DATA_DIR = 'data'
 COLORS = ['red','grey','blue','green']
-#GROUND KEYS: year	hiv	tb	economic	internet	mobiles	urban	english
+DEFAULT_FEATURES = 'median+sd'
 
 def get_csv(key):
 	#Return the csv file for key name
 	filename = os.path.join(DATA_DIR,'%s.csv'%key)
 	return pd.read_csv(filename)
 #Get ground truth data
+#GROUND KEYS: year	hiv	tb	economic	internet	mobiles	urban	english
 GT = get_csv('ground')
 GT_LABELS = ['economic','internet','mobiles','urban','english','literacy','population']
 
@@ -116,7 +117,7 @@ def get_fitted_graph(df,features=['median','sd'],label='HIV'):
 	model = sm.OLS(df['ground'], df[features])
 	results = model.fit()
 	fig, ax = plt.subplots()
-	fig = sm.graphics.plot_fit(results, 0, ax=ax)
+	fig = sm.graphics.plot_fit(results, 1, ax=ax)
 	ax.set_ylabel("%s Ground"%label)
 	ax.set_xlabel("Internet Query Level")
 	ax.set_title("Linear Regression")
@@ -134,7 +135,7 @@ def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='medi
 	ax.set_ylabel("resid")
 	plt.draw()
 
-def run_levels(data,features='median+sd',n=4):
+def run_levels(data,features=DEFAULT_FEATURES,n=4):
 	columns = ['q%i'%i for i in range(n)]+['all']
 	table = {c:[] for c in columns}
 	print 'Running Levels: %s'%features
@@ -146,7 +147,19 @@ def run_levels(data,features='median+sd',n=4):
 		table['all'].append(model.rsquared)
 	return pd.DataFrame(data=table,index=[l for l in GT_LABELS])
 
-def graph_levels(data,features='median+sd',n=4):
+def run_country(df,country,features=DEFAULT_FEATURES):
+	df = filter_country(df,country)
+	print '%s %s'%(country,df.shape)
+	if df.shape[0] > 1:
+		model = runModel(df,features)
+		return model
+	return None
+
+def run_countries(data,features=DEFAULT_FEATURES):
+	for country in data.country.unique():
+		run_country(data,country,features)
+
+def graph_levels(data,features=DEFAULT_FEATURES,n=4):
 	df = run_levels(data,features,n)
 	df.T.drop('all').plot()
 	return df
@@ -156,7 +169,7 @@ def show_stats(df):
 	print df.loc[:,['country','year','ground','avg','median','sd','economic','mobiles','internet']]
 
 
-def runModel(data,features,reg=0,verbose=0,**kwargs):
+def runModel(data,features=DEFAULT_FEATURES,reg=0,verbose=0,**kwargs):
 	if verbose > -1:
 		print 'Making Model: %s Data Shape: %s'%(features,data.shape)
 	if reg:
