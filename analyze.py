@@ -39,13 +39,15 @@ def get_dataset_stats(**kwargs):
 	for key in ['hiv','tb']:
 		df = get_csv(key)
 		total_size = df.shape[0]
+		df = filter_years(df,year=kwargs.get('year',2011))
+		size_years = df.shape[0]
 		df['ground'] = GT[key]
 		df = pd.concat([df,GT.loc[:,GT_LABELS]],axis=1)
 		df = df.dropna()
 		size_ground = df.shape[0]
 		df = filter_zeros(df,count=kwargs.get('count',5))
 		size_zero = df.shape[0]
-		print '%s,%s,%s,%s,%s'%(key,total_size,(total_size-size_ground),(size_ground-size_zero),size_zero)
+		print '%s,%s,%s,%s,%s'%(key,total_size,size_years,size_ground,size_zero)
 
 def filter_years(df,year=2011):
 	years = df.loc[:,'year']
