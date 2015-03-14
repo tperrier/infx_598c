@@ -118,15 +118,15 @@ def get_scatter_grid_plot(df,features=['internet', 'economic', 'mobiles', 'liter
 		pd.tools.plotting.scatter_matrix(df[features],marker='o',color=get_colors(df,colorkey))
 	plt.draw()
 
-def get_fitted_graph(df,features=['median','sd'],label='HIV'):
+def get_fitted_graph(df,ax,features=['median','sd'],label='HIV'):
 	model = sm.OLS(df['ground'], df[features])
 	results = model.fit()
-	fig, ax = plt.subplots()
-	fig = sm.graphics.plot_fit(results, 1, ax=ax)
-	ax.set_ylabel("%s Ground"%label)
-	ax.set_xlabel("Internet Query Level")
-	ax.set_title("Linear Regression")
-	plt.draw()
+	#fig, ax = plt.subplots()
+	fig = sm.graphics.plot_fit(results, 0, ax=ax)
+	#ax.set_ylabel("%s Ground"%label)
+	#ax.set_xlabel("Internet Query Level")
+	#ax.set_title("Linear Regression")
+	#plt.draw()
 
 def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='median'):
 	model = sm.OLS(df['ground'], df[features])
@@ -139,6 +139,17 @@ def get_residue_graph(df,features=['median','sd'],label='HIV',exog_feature='medi
 	ax.set_xlabel(exog_feature)
 	ax.set_ylabel("resid")
 	plt.draw()
+
+def get_all_fitted_graphs(df,features=['median','sd'],split='internet',label='HIV'):
+	fig = plt.figure(figsize=(8,6))
+	grid_val = 220
+	q_i=1
+	lb=['a','b','c','d']
+	for dt in split_by(df,split):
+		ax = fig.add_subplot(grid_val+q_i)
+		get_fitted_graph(dt,ax,features=features,label=label)
+		ax.set_title('( %s )'%lb[q_i-1])
+		q_i=q_i+1
 
 def run_levels(data,features=DEFAULT_FEATURES,n=4):
 	columns = ['q%i'%i for i in range(n)]+['all']
@@ -180,7 +191,7 @@ def runModel(data,features=DEFAULT_FEATURES,reg=0,verbose=0,**kwargs):
 	if reg:
 		alpha = kwargs.get('alpha',0.2)
 		maxiter = kwargs.get('maxiter',1000)
-		wt = kwargs.get('wt',1000)
+		wt = kwargs.get('wt',1)
 		model = ols("ground ~ "+features, data).fit_regularized(alpha=alpha,maxiter=maxiter,L1_wt=wt)
 	else:
 		model = ols("ground ~ "+features, data).fit()
