@@ -155,13 +155,13 @@ def run_levels(data,features=DEFAULT_FEATURES,n=4):
 	columns = ['q%i'%i for i in range(n)]+['all']
 	table = {c:[] for c in columns}
 	print 'Running Levels: %s'%features
-	for label in GT_LABELS:
+	for label in [l for l in GT_LABELS if l is not 'literacy']:
 		for ix,split in enumerate(split_by(data,label,n)):
 			model = runModel(split,features,verbose=-1)
 			table[columns[ix]].append(model.rsquared)
 		model = runModel(data,features,verbose=-1)
 		table['all'].append(model.rsquared)
-	return pd.DataFrame(data=table,index=[l for l in GT_LABELS])
+	return pd.DataFrame(data=table,index=[l for l in GT_LABELS if l is not 'literacy'])
 
 def run_country(df,country,features=DEFAULT_FEATURES):
 	df = filter_country(df,country)
